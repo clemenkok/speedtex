@@ -1,36 +1,57 @@
+// stores/gameStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-export const useGameStore = defineStore('gameStore', () => {
-  const history = ref<{ equation: string; time: number; score: number }[]>([]);
-  const leaderboard = ref<{ name: string; nationality: string; score: number }[]>([]);
-  const user = ref<{ name: string; nationality: string } | null>(null);
+type LeaderboardEntry = {
+  name: string;
+  nationality: string;
+  score: number;
+  difficulty: string;
+  equation: string;  // Required equation
+  time: number;      // Required time
+};
 
-  // Get difficulty weight for score calculation
+type Attempt = {
+  equation: string;
+  time: number;
+  score: number;
+  difficulty: string;
+};
+
+export const useGameStore = defineStore('gameStore', () => {
+  const history = ref<Attempt[]>([]);
+  const leaderboard = ref<LeaderboardEntry[]>([]);
+  const user = ref<{ name: string; nationality: string; difficulty: string } | null>(null);
+
   const getDifficultyWeight = (difficulty: string): number => {
-    if (difficulty === 'easy') return 1;
-    if (difficulty === 'medium') return 2;
-    if (difficulty === 'hard') return 3;
-    return 1; // Default to easy
+    return difficulty === 'hard' ? 3 : 1;
   };
 
-  // Add an attempt to the recent history
   const addAttempt = (equation: string, time: number, difficulty: string) => {
     const difficultyWeight = getDifficultyWeight(difficulty);
     const score = difficultyWeight / time;
-    history.value.push({ equation, time, score });
-    console.log('Recent Attempts Updated:', history.value); // Debugging
+    history.value.push({ equation, time, score, difficulty });
   };
-  
-  const addLeaderboardAttempt = (name: string, nationality: string, score: number) => {
-    leaderboard.value.push({ name, nationality, score });
-    leaderboard.value.sort((a, b) => b.score - a.score);
-    console.log('Leaderboard Updated:', leaderboard.value); // Debugging
+
+  // Updated addLeaderboardAttempt to require `time` and `equation`
+  const addLeaderboardAttempt = (
+    name: string,
+    nationality: string,
+    score: number,
+    difficulty: string,
+    equation: string,
+    time: number
+  ) => {
+    leaderboard.value.push({ name, nationality, score, difficulty, equation, time });
+    if (difficulty === 'normal') {
+      leaderboard.value.sort((a, b) => b.score - a.score);
+    } else {
+      leaderboard.value.sort((a, b) => a.equation.localeCompare(b.equation));
+    }
   };
-  
-  // Set user information
-  const setUser = (name: string, nationality: string) => {
-    user.value = { name, nationality };
+
+  const setUser = (name: string, nationality: string, difficulty: string) => {
+    user.value = { name, nationality, difficulty };
   };
 
   return {
