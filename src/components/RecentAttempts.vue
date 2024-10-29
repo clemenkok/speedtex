@@ -87,4 +87,51 @@ watch(paginatedAttempts, async () => {
 .pagination {
   padding-top: 0.5rem;
 }
+
+.table-container {
+  overflow-y: auto;
+  max-height: calc(100% - 4rem); /* Adjusts to fit in the card with the title and pagination */
+}
+
+table {
+  width: 100%;
+  table-layout: fixed; /* Ensures columns stay consistent in width */
+}
+
+th, td {
+  text-align: center;
+  padding: 0.75rem;
+  white-space: nowrap; /* Prevents text from wrapping */
+  overflow: hidden;
+  text-overflow: ellipsis; /* Adds ellipsis to truncated text */
+}
+
+thead th {
+  font-weight: bold;
+}
+
+.table-container {
+  overflow-y: auto;
+  max-height: calc(100% - 4rem); /* Adjusts to fit in the card with the title and pagination */
+}
+
+/* Custom scrollbar styles */
+.table-container::-webkit-scrollbar {
+  width: 8px; /* Adjust width as needed */
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #2d3748; /* Matches the dark background */
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background-color: #4a5568; /* Darker gray for thumb */
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background-color: #718096; /* Lighter on hover */
+}
+
 </style>

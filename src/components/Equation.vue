@@ -1,12 +1,18 @@
 <template>
   <div class="equation-component bg-gray-800 p-6 rounded-lg shadow-md w-full h-full flex flex-col items-center justify-center">
+    <!-- Display current difficulty -->
+    <p class="text-white font-bold mb-4">Difficulty: {{ currentDifficulty }}</p>
+
+    <!-- Game Start Button -->
     <button
       v-if="!isPlaying"
       @click="startGame"
-      class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700"
+      class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 mt-4"
     >
       Start
     </button>
+
+    <!-- Equation and Input Section -->
     <div v-if="isPlaying" class="mt-4 w-full flex flex-col items-center">
       <p v-html="equation" class="text-2xl font-bold text-center mb-4"></p>
       <input
@@ -22,15 +28,26 @@
       <p class="mt-4 text-lg text-center text-white">Time: {{ timeElapsed.toFixed(2) }} seconds</p>
       <p v-if="feedback" :class="feedbackClass" class="text-center mt-4">{{ feedback }}</p>
 
-      <!-- Conditionally render the "Re-roll" button only if the answer is not completed (i.e., not correct) -->
-      <button
-        v-if="!isCompleted"
-        @click="reRollEquation"
-        class="bg-yellow-500 text-white px-4 py-2 mt-4 rounded hover:bg-yellow-600"
-      >
-        Re-roll Equation
-      </button>
+      <!-- Re-roll Buttons for Each Difficulty -->
+      <div class="flex gap-4 mt-4">
+        <button
+          v-if="!isCompleted"
+          @click="reRollEquation('normal')"
+          class="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
+        >
+          Re-roll Normal Equation
+        </button>
+        <button
+          v-if="!isCompleted"
+          @click="reRollEquation('hard')"
+          class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+        >
+          Re-roll Hard Equation
+        </button>
+      </div>
     </div>
+
+    <!-- Play Again Button -->
     <div v-if="isCompleted" class="mt-4">
       <button
         @click="startGame"
@@ -57,8 +74,11 @@ const feedback = ref('');
 const timeElapsed = ref(0);
 const isPlaying = ref(false);
 const isCompleted = ref(false);
-const difficulty = ref('');
 
+// Computed property for current difficulty (based on selected re-roll)
+const currentDifficulty = ref('normal');
+
+// Feedback classes for visual indicators
 const feedbackClass = computed(() => {
   if (feedback.value === 'Correct!') {
     return 'text-green-600 font-bold';
@@ -69,6 +89,7 @@ const feedbackClass = computed(() => {
   }
 });
 
+// Normalize equations to compare answers
 const normalizeEquation = (input: string) => {
   return input
     .replace(/^\$\$|\$\$$/g, '')
@@ -91,12 +112,14 @@ const normalizeEquation = (input: string) => {
     .toLowerCase();
 };
 
+// Predefined equations for hard difficulty
 const predefinedEquations = [
   `f(\\mathbf{x}^{(k+1)}) \\le f(\\mathbf{x}^{(k)}) + \\beta \\alpha \\nabla_{d^{(k)}}f(\\mathbf{x}^{(k)})`,
   `\\beta^{(k)}=\\frac{\\mathbf{g}^{(k)\\top}(\\mathbf{g}^{(k)}-\\mathbf{g}^{(k-1)})}{\\mathbf{g}^{(k-1)\\top}\\mathbf{g}^{(k-1)}}`,
   `\\mathbf{v}^{(k+1)}=\\beta\\mathbf{v}^{(k)}-\\alpha\\nabla f(\\mathbf{x}^{(k)}+\\beta \\mathbf{v}^{(k)})`,
 ];
 
+// Functions for random equations
 const randomIntegral = () => {
   const variables = ['x', 'y', 'z'];
   const variable = variables[Math.floor(Math.random() * variables.length)];
@@ -109,20 +132,20 @@ const randomPDE = () => {
   return `${operator} u(x, t) = \\alpha u(x, t)`;
 };
 
-const generateRandomEquation = () => {
+// Generate equation based on selected difficulty
+const generateRandomEquation = (difficulty: string) => {
   let equationContent = '';
 
-  if (gameStore.user?.difficulty === 'normal') {
-    // Randomly generate a PDE or integral for "normal" difficulty
+  if (difficulty === 'normal') {
     const choice = Math.random();
     equationContent = choice < 0.5 ? randomIntegral() : randomPDE();
   } else {
-    // Preselected complex equations for "hard" difficulty
     equationContent = predefinedEquations[Math.floor(Math.random() * predefinedEquations.length)];
   }
 
   equation.value = `$$${equationContent}$$`;
-  correctAnswer.value = equationContent;  // Store without $$ delimiters
+  correctAnswer.value = equationContent;
+  currentDifficulty.value = difficulty; // Update current difficulty
 
   nextTick(() => {
     if (window.MathJax) {
@@ -131,7 +154,7 @@ const generateRandomEquation = () => {
   });
 };
 
-
+// Start game function
 const startGame = () => {
   isPlaying.value = true;
   isCompleted.value = false;
@@ -140,10 +163,11 @@ const startGame = () => {
   userPreview.value = '';
   timeElapsed.value = 0;
 
-  generateRandomEquation();
+  generateRandomEquation(currentDifficulty.value); // Use initial difficulty
   startTimer();
 };
 
+// Timer functions
 const startTimer = () => {
   timerInterval = window.setInterval(() => {
     timeElapsed.value += 0.01;
@@ -156,8 +180,8 @@ const stopTimer = () => {
   }
 };
 
-// New re-roll function
-const reRollEquation = () => {
+// Re-roll function with specific difficulty
+const reRollEquation = (difficulty: string) => {
   stopTimer();
   timeElapsed.value = 0;
   feedback.value = '';
@@ -165,10 +189,11 @@ const reRollEquation = () => {
   userPreview.value = '';
   isCompleted.value = false;
 
-  generateRandomEquation();
+  generateRandomEquation(difficulty);
   startTimer();
 };
 
+// Preview update function
 const updatePreview = async () => {
   userPreview.value = `$$${userAnswer.value}$$`;
   await nextTick();
@@ -184,23 +209,22 @@ const updatePreview = async () => {
     stopTimer();
     isCompleted.value = true;
 
-    const score = gameStore.getDifficultyWeight(gameStore.user?.difficulty || 'normal') / timeElapsed.value;
+    const score = gameStore.getDifficultyWeight(currentDifficulty.value) / timeElapsed.value;
     if (gameStore.user) {
       gameStore.addLeaderboardAttempt(
         gameStore.user.name,
         gameStore.user.nationality,
         score,
-        gameStore.user.difficulty,
-        equation.value,       // Always pass equation
-        timeElapsed.value     // Always pass time
+        currentDifficulty.value,
+        equation.value,
+        timeElapsed.value
       );
     }
-    gameStore.addAttempt(equation.value, timeElapsed.value, gameStore.user?.difficulty || 'normal');
+    gameStore.addAttempt(equation.value, timeElapsed.value, currentDifficulty.value);
   } else {
     feedback.value = 'Keep trying!';
   }
 };
-
 
 onMounted(() => {
   if (window.MathJax) {
