@@ -1,7 +1,6 @@
-// stores/gameStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import apiClient from '../api/axios';
+import apiClient from '@/api/axios';
 
 type LeaderboardEntry = {
   name: string;
@@ -21,7 +20,7 @@ type Attempt = {
 
 // Define the return type for the store
 export const useGameStore = defineStore('gameStore', () => {
-  const history = ref<Attempt[]>([]);
+  const history = ref<Attempt[]>([]); // Holds recent attempts in memory
   const leaderboard = ref<LeaderboardEntry[]>([]);
   const user = ref<{ name: string; nationality: string; difficulty: string } | null>(null);
 
@@ -30,6 +29,7 @@ export const useGameStore = defineStore('gameStore', () => {
     return difficulty === 'hard' ? 3 : 1;
   };
 
+  // Fetches the leaderboard from the backend
   const fetchLeaderboard = async (difficulty: string) => {
     try {
       const response = await apiClient.get('/leaderboard', {
@@ -41,15 +41,7 @@ export const useGameStore = defineStore('gameStore', () => {
     }
   };
 
-  const fetchAttempts = async () => {
-    try {
-      const response = await apiClient.get('/attempts');
-      history.value = response.data;
-    } catch (error) {
-      console.error('Error fetching attempts:', error);
-    }
-  };
-
+  // Adds a leaderboard entry to the backend and refreshes leaderboard
   const addLeaderboardEntry = async (entry: LeaderboardEntry) => {
     try {
       await apiClient.post('/leaderboard', entry);
@@ -59,19 +51,22 @@ export const useGameStore = defineStore('gameStore', () => {
     }
   };
 
-  const addAttempt = async (equation: string, time: number, difficulty: string) => {
+  // Adds an attempt locally (without backend storage)
+  const addAttempt = (equation: string, time: number, difficulty: string) => {
     const difficultyWeight = getDifficultyWeight(difficulty);
     const score = difficultyWeight / time;
     const attempt = { equation, time, score, difficulty };
 
-    try {
-      await apiClient.post('/attempt', attempt);
-      await fetchAttempts();
-    } catch (error) {
-      console.error('Error adding attempt:', error);
+    // Add the attempt to the history array (no backend call)
+    history.value.unshift(attempt);
+
+    // Optionally, limit history to a certain number of attempts
+    if (history.value.length > 50) {
+      history.value.pop(); // Keep only the latest 50 attempts
     }
   };
 
+  // Sets user information
   const setUser = (name: string, nationality: string, difficulty: string) => {
     user.value = { name, nationality, difficulty };
   };
@@ -83,8 +78,7 @@ export const useGameStore = defineStore('gameStore', () => {
     addAttempt,
     addLeaderboardEntry,
     fetchLeaderboard,
-    fetchAttempts,
     setUser,
-    getDifficultyWeight, // Ensure this is returned here
+    getDifficultyWeight,
   };
 });

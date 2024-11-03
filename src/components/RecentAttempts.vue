@@ -41,33 +41,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, nextTick } from 'vue';
-import axios from '../api/axios';
+import { ref, computed, watch, nextTick } from 'vue';
+import { useGameStore } from '../stores/gameStore';
 
-// Define the structure of an Attempt
-interface Attempt {
-  equation: string;
-  time: number;
-}
-
-// Define reactive properties for current page and attempts per page
+const gameStore = useGameStore();
 const currentPage = ref(1);
 const itemsPerPage = 5;
-const attempts = ref<Attempt[]>([]); // Define the type of attempts as an array of Attempt
-
-// Fetch recent attempts from the backend
-const fetchRecentAttempts = async () => {
-  try {
-    const response = await axios.get<Attempt[]>('/attempts'); // Type response as an array of Attempt
-    attempts.value = response.data;
-  } catch (error) {
-    console.error('Error fetching recent attempts:', error);
-  }
-};
 
 // Computed properties for pagination and sorting
 const sortedAttempts = computed(() => {
-  return [...attempts.value].sort((a, b) => b.time - a.time);
+  return [...gameStore.history].sort((a, b) => b.time - a.time);
 });
 
 const totalPages = computed(() => {
@@ -95,9 +78,6 @@ watch(paginatedAttempts, async () => {
     window.MathJax.typeset();
   }
 });
-
-// Fetch recent attempts on component mount
-onMounted(fetchRecentAttempts);
 </script>
 
 <style scoped>

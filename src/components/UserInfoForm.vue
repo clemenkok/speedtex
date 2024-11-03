@@ -1,15 +1,15 @@
 <template>
-  <div class="user-info-form bg-gray-700 text-white p-6 rounded-lg shadow-md max-w-md w-full mx-auto mt-8">
-    <h2 class="text-2xl font-bold mb-4 text-center">Welcome to SpeedTeX</h2>
-    <form @submit.prevent="submitUserInfo">
-      <!-- Name Input -->
+  <div class="user-registration bg-gray-700 text-white p-6 rounded-lg shadow-md max-w-md w-full mx-auto mt-8">
+    <h3 class="text-2xl font-bold mb-4 text-center">Register User</h3>
+    <form @submit.prevent="registerUser">
+      <!-- Username Input -->
       <div class="mb-4">
-        <label class="block text-sm font-bold mb-2">Name:</label>
+        <label class="block text-sm font-bold mb-2">Username:</label>
         <input
           type="text"
-          v-model="name"
+          v-model="username"
           class="input-field"
-          placeholder="Enter your name"
+          placeholder="Enter your username"
           required
         />
       </div>
@@ -17,42 +17,12 @@
       <!-- Nationality Select -->
       <div class="mb-6">
         <label class="block text-sm font-bold mb-2">Nationality:</label>
-        <select
-          v-model="nationality"
-          class="input-field"
-          required
-        >
+        <select v-model="nationality" class="input-field" required>
           <option disabled value="">Select your nationality</option>
           <option v-for="country in countries" :key="country.name" :value="country.name">
             {{ country.name }} {{ country.emoji }}
           </option>
         </select>
-      </div>
-
-      <!-- Difficulty Select -->
-      <div class="mb-6">
-        <label class="block text-sm font-bold mb-2">Difficulty:</label>
-        <select
-          v-model="difficulty"
-          class="input-field"
-          required
-        >
-          <option disabled value="">Select difficulty</option>
-          <option value="normal">Normal</option>
-          <option value="hard">Hard</option>
-        </select>
-      </div>
-
-      <!-- Email Input for Authentication -->
-      <div class="mb-4">
-        <label class="block text-sm font-bold mb-2">Email:</label>
-        <input
-          type="email"
-          v-model="email"
-          class="input-field"
-          placeholder="Enter your email"
-          required
-        />
       </div>
 
       <!-- Submit Button -->
@@ -61,7 +31,7 @@
           type="submit"
           class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
-          Log In
+          Register
         </button>
       </div>
     </form>
@@ -70,56 +40,42 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import axios from 'axios'; // Import axios for making API requests
+import axios from 'axios'; // Import axios
 
-// Form state variables
-const name = ref('');
+// Import countries data from countries.json
+import countriesData from '../../public/countries.json'; // Adjust path as necessary
+
+const username = ref('');
 const nationality = ref('');
-const difficulty = ref('');
-const email = ref('');
 const countries = ref<{ name: string; emoji: string }[]>([]);
 
-// Fetch countries list from the backend API
-const fetchCountries = async () => {
-  try {
-    const response = await axios.get('/api/countries'); // Replace with actual backend endpoint
-    countries.value = response.data;
-  } catch (error) {
-    console.error('Error loading countries:', error);
-  }
-};
+// Load countries data from local JSON file
+onMounted(() => {
+  countries.value = countriesData;
+});
 
-// Handle form submission
-const submitUserInfo = async () => {
+// Function to handle user registration
+const registerUser = async () => {
   try {
-    // Step 1: Authenticate user by sending their email to the backend
-    const authResponse = await axios.post('/api/auth/login', { email: email.value });
-    if (authResponse.data.status !== 'success') {
-      console.error('Authentication failed:', authResponse.data.message);
-      return;
-    }
-
-    // Step 2: Submit user info (name, nationality, difficulty) to the backend after authentication
-    const userInfo = {
-      name: name.value,
+    const response = await axios.post('/api/users/register', {
+      username: username.value,
       nationality: nationality.value,
-      difficulty: difficulty.value,
-      email: email.value,
-    };
-    const userResponse = await axios.post('/api/user', userInfo);
-
-    if (userResponse.data.status === 'success') {
-      alert('Logged in and user info saved successfully!');
-    } else {
-      console.error('Error saving user info:', userResponse.data.message);
-    }
+    });
+    alert('User registered successfully!');
   } catch (error) {
-    console.error('Error submitting user info:', error);
+    // Check if error is an AxiosError and handle accordingly
+    if (axios.isAxiosError(error)) {
+      if (error.response && error.response.status === 409) {
+        alert('User with this username and nationality already exists.');
+      } else {
+        alert('Failed to register user. Please try again.');
+      }
+    } else {
+      console.error('Unexpected error:', error);
+      alert('An unexpected error occurred. Please try again.');
+    }
   }
 };
-
-// Fetch countries on component mount
-onMounted(fetchCountries);
 </script>
 
 <style scoped>
@@ -128,16 +84,17 @@ onMounted(fetchCountries);
   padding: 0.5rem 0.75rem;
   border: 1px solid #374151;
   border-radius: 0.375rem;
-  background-color: #4b5563;
-  color: #d1d5db;
-  appearance: none;
+  background-color: #4b5563; /* Dark gray background */
+  color: #d1d5db; /* Light gray text */
+  appearance: none; /* Remove default browser styling */
   outline: none;
   transition: border-color 0.2s;
   font-size: 0.875rem;
 }
 
+/* Focus styling for inputs and selects */
 .input-field:focus {
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+  border-color: #3b82f6; /* Blue border on focus */
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* Blue outline */
 }
 </style>
