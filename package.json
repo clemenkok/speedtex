@@ -11,10 +11,13 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "@vueform/multiselect": "^2.6.10",
+    "@vueform/vueform": "^1.11.0",
     "mathjs": "^13.2.0",
     "pinia": "^2.2.4",
     "vue": "^3.5.12",
-    "vue-router": "^4.4.5"
+    "vue-router": "^4.4.5",
+    "vue-select": "^4.0.0-beta.6"
   },
   "devDependencies": {
     "@tsconfig/node20": "^20.1.4",
