@@ -11,7 +11,7 @@
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
-    "@vueform/multiselect": "^2.6.10",
+    "@formkit/vue": "^1.6.7",
     "@vueform/vueform": "^1.11.0",
     "mathjs": "^13.2.0",
     "pinia": "^2.2.4",
