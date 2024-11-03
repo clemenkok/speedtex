@@ -12,7 +12,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="(entry, index) in filteredLeaderboard" :key="index">
+        <tr v-for="(entry, index) in leaderboard" :key="index">
           <td class="text-center">{{ entry.name }}</td>
           <td class="text-center">{{ entry.nationality }}</td>
           <td class="text-center">{{ entry.equation || '-' }}</td>
@@ -25,17 +25,41 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
-import { useGameStore } from '../stores/gameStore';
+import { ref, onMounted, watch } from 'vue';
+import axios from '../api/axios';
 
 // Define props for difficulty
 const props = defineProps<{ difficulty: string }>();
-const gameStore = useGameStore();
 
-// Filter leaderboard based on difficulty
-const filteredLeaderboard = computed(() => {
-  return gameStore.leaderboard.filter(entry => entry.difficulty === props.difficulty);
-});
+// Define the type for each leaderboard entry
+interface LeaderboardEntry {
+  name: string;
+  nationality: string;
+  equation: string;
+  score: number;
+  time: number;
+}
+
+// Leaderboard data based on difficulty
+const leaderboard = ref<LeaderboardEntry[]>([]);
+
+// Function to fetch leaderboard data based on difficulty
+const fetchLeaderboard = async () => {
+  try {
+    const response = await axios.get<LeaderboardEntry[]>('/leaderboard', {
+      params: { difficulty: props.difficulty }
+    });
+    leaderboard.value = response.data;
+  } catch (error) {
+    console.error('Error fetching leaderboard:', error);
+  }
+};
+
+// Fetch leaderboard data when component mounts
+onMounted(fetchLeaderboard);
+
+// Refetch leaderboard when difficulty changes
+watch(() => props.difficulty, fetchLeaderboard);
 </script>
 
 <style scoped>

@@ -13,6 +13,7 @@
   "dependencies": {
     "@formkit/vue": "^1.6.7",
     "@vueform/vueform": "^1.11.0",
+    "axios": "^1.7.7",
     "mathjs": "^13.2.0",
     "pinia": "^2.2.4",
     "vue": "^3.5.12",

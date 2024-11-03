@@ -43,6 +43,18 @@
         </select>
       </div>
 
+      <!-- Email Input for Authentication -->
+      <div class="mb-4">
+        <label class="block text-sm font-bold mb-2">Email:</label>
+        <input
+          type="email"
+          v-model="email"
+          class="input-field"
+          placeholder="Enter your email"
+          required
+        />
+      </div>
+
       <!-- Submit Button -->
       <div class="flex justify-center">
         <button
@@ -58,65 +70,74 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { useGameStore } from '../stores/gameStore';
+import axios from 'axios'; // Import axios for making API requests
 
-const gameStore = useGameStore();
+// Form state variables
 const name = ref('');
 const nationality = ref('');
 const difficulty = ref('');
+const email = ref('');
 const countries = ref<{ name: string; emoji: string }[]>([]);
 
-const submitUserInfo = () => {
-  if (name.value && nationality.value && difficulty.value) {
-    gameStore.setUser(name.value, nationality.value, difficulty.value);
-  }
-};
-
-onMounted(async () => {
+// Fetch countries list from the backend API
+const fetchCountries = async () => {
   try {
-    const response = await fetch('/countries.json');
-    countries.value = await response.json();
+    const response = await axios.get('/api/countries'); // Replace with actual backend endpoint
+    countries.value = response.data;
   } catch (error) {
     console.error('Error loading countries:', error);
   }
-});
+};
+
+// Handle form submission
+const submitUserInfo = async () => {
+  try {
+    // Step 1: Authenticate user by sending their email to the backend
+    const authResponse = await axios.post('/api/auth/login', { email: email.value });
+    if (authResponse.data.status !== 'success') {
+      console.error('Authentication failed:', authResponse.data.message);
+      return;
+    }
+
+    // Step 2: Submit user info (name, nationality, difficulty) to the backend after authentication
+    const userInfo = {
+      name: name.value,
+      nationality: nationality.value,
+      difficulty: difficulty.value,
+      email: email.value,
+    };
+    const userResponse = await axios.post('/api/user', userInfo);
+
+    if (userResponse.data.status === 'success') {
+      alert('Logged in and user info saved successfully!');
+    } else {
+      console.error('Error saving user info:', userResponse.data.message);
+    }
+  } catch (error) {
+    console.error('Error submitting user info:', error);
+  }
+};
+
+// Fetch countries on component mount
+onMounted(fetchCountries);
 </script>
 
 <style scoped>
-/* Consistent styling for all form inputs and selects */
 .input-field {
   width: 100%;
   padding: 0.5rem 0.75rem;
   border: 1px solid #374151;
   border-radius: 0.375rem;
-  background-color: #4b5563; /* Dark gray background */
-  color: #d1d5db; /* Light gray text */
-  appearance: none; /* Remove default browser styling */
-  -webkit-appearance: none; /* Remove default styling in Safari */
+  background-color: #4b5563;
+  color: #d1d5db;
+  appearance: none;
   outline: none;
   transition: border-color 0.2s;
   font-size: 0.875rem;
 }
 
-/* Focus styling for inputs and selects */
 .input-field:focus {
-  border-color: #3b82f6; /* Blue border on focus */
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); /* Blue outline */
-}
-
-/* Custom arrow for select dropdowns */
-.input-field::after {
-  content: '▼';
-  font-size: 0.75rem;
-  color: #d1d5db;
-  position: absolute;
-  right: 0.75rem;
-  pointer-events: none;
-}
-
-/* Style the dropdown options */
-select.input-field option {
-  background-color: #4b5563;
-  color: #d1d5db;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
 }
 </style>

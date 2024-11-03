@@ -41,15 +41,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue';
-import { useGameStore } from '../stores/gameStore';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
+import axios from '../api/axios';
 
-const gameStore = useGameStore();
+// Define the structure of an Attempt
+interface Attempt {
+  equation: string;
+  time: number;
+}
+
+// Define reactive properties for current page and attempts per page
 const currentPage = ref(1);
 const itemsPerPage = 5;
+const attempts = ref<Attempt[]>([]); // Define the type of attempts as an array of Attempt
 
+// Fetch recent attempts from the backend
+const fetchRecentAttempts = async () => {
+  try {
+    const response = await axios.get<Attempt[]>('/attempts'); // Type response as an array of Attempt
+    attempts.value = response.data;
+  } catch (error) {
+    console.error('Error fetching recent attempts:', error);
+  }
+};
+
+// Computed properties for pagination and sorting
 const sortedAttempts = computed(() => {
-  return [...gameStore.history].sort((a, b) => b.time - a.time);
+  return [...attempts.value].sort((a, b) => b.time - a.time);
 });
 
 const totalPages = computed(() => {
@@ -77,6 +95,9 @@ watch(paginatedAttempts, async () => {
     window.MathJax.typeset();
   }
 });
+
+// Fetch recent attempts on component mount
+onMounted(fetchRecentAttempts);
 </script>
 
 <style scoped>
@@ -88,6 +109,7 @@ watch(paginatedAttempts, async () => {
   padding-top: 0.5rem;
 }
 
+/* Table and scrollbar styling (as before) */
 .table-container {
   overflow-y: auto;
   max-height: calc(100% - 4rem); /* Adjusts to fit in the card with the title and pagination */
@@ -110,28 +132,21 @@ thead th {
   font-weight: bold;
 }
 
-.table-container {
-  overflow-y: auto;
-  max-height: calc(100% - 4rem); /* Adjusts to fit in the card with the title and pagination */
-}
-
-/* Custom scrollbar styles */
 .table-container::-webkit-scrollbar {
-  width: 8px; /* Adjust width as needed */
+  width: 8px;
 }
 
 .table-container::-webkit-scrollbar-track {
-  background: #2d3748; /* Matches the dark background */
+  background: #2d3748;
   border-radius: 4px;
 }
 
 .table-container::-webkit-scrollbar-thumb {
-  background-color: #4a5568; /* Darker gray for thumb */
+  background-color: #4a5568;
   border-radius: 4px;
 }
 
 .table-container::-webkit-scrollbar-thumb:hover {
-  background-color: #718096; /* Lighter on hover */
+  background-color: #718096;
 }
-
 </style>

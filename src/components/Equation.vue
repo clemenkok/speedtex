@@ -1,9 +1,7 @@
 <template>
   <div class="equation-component bg-gray-800 p-6 rounded-lg shadow-md w-full h-full flex flex-col items-center justify-center">
-    <!-- Display current difficulty -->
     <p class="text-white font-bold mb-4">Difficulty: {{ currentDifficulty }}</p>
 
-    <!-- Game Start Button -->
     <button
       v-if="!isPlaying"
       @click="startGame"
@@ -12,7 +10,6 @@
       Start
     </button>
 
-    <!-- Equation and Input Section -->
     <div v-if="isPlaying" class="mt-4 w-full flex flex-col items-center">
       <p v-html="equation" class="text-2xl font-bold text-center mb-4"></p>
       <input
@@ -28,7 +25,6 @@
       <p class="mt-4 text-lg text-center text-white">Time: {{ timeElapsed.toFixed(2) }} seconds</p>
       <p v-if="feedback" :class="feedbackClass" class="text-center mt-4">{{ feedback }}</p>
 
-      <!-- Re-roll Buttons for Each Difficulty -->
       <div class="flex gap-4 mt-4">
         <button
           v-if="!isCompleted"
@@ -47,7 +43,6 @@
       </div>
     </div>
 
-    <!-- Play Again Button -->
     <div v-if="isCompleted" class="mt-4">
       <button
         @click="startGame"
@@ -61,11 +56,9 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, onMounted } from 'vue';
-import { useGameStore } from '../stores/gameStore';
+import axios from '../api/axios'; // Import Axios instance with baseURL
 
-const gameStore = useGameStore();
-
-let timerInterval: number | undefined = undefined;
+// Game state variables
 const equation = ref('');
 const correctAnswer = ref('');
 const userAnswer = ref('');
@@ -74,8 +67,12 @@ const feedback = ref('');
 const timeElapsed = ref(0);
 const isPlaying = ref(false);
 const isCompleted = ref(false);
+// Timer interval reference
+let timerInterval: number | undefined = undefined;
 
-// Computed property for current difficulty (based on selected re-roll)
+// User data (assuming it's fetched/stored globally or from a store)
+const user = ref({ name: 'Player1', nationality: 'Country', difficulty: 'normal' });
+
 const currentDifficulty = ref('normal');
 
 // Feedback classes for visual indicators
@@ -89,7 +86,6 @@ const feedbackClass = computed(() => {
   }
 });
 
-// Normalize equations to compare answers
 const normalizeEquation = (input: string) => {
   return input
     .replace(/^\$\$|\$\$$/g, '')
@@ -112,49 +108,18 @@ const normalizeEquation = (input: string) => {
     .toLowerCase();
 };
 
-// Predefined equations for hard difficulty
-const predefinedEquations = [
-  `f(\\mathbf{x}^{(k+1)}) \\le f(\\mathbf{x}^{(k)}) + \\beta \\alpha \\nabla_{d^{(k)}}f(\\mathbf{x}^{(k)})`,
-  `\\beta^{(k)}=\\frac{\\mathbf{g}^{(k)\\top}(\\mathbf{g}^{(k)}-\\mathbf{g}^{(k-1)})}{\\mathbf{g}^{(k-1)\\top}\\mathbf{g}^{(k-1)}}`,
-  `\\mathbf{v}^{(k+1)}=\\beta\\mathbf{v}^{(k)}-\\alpha\\nabla f(\\mathbf{x}^{(k)}+\\beta \\mathbf{v}^{(k)})`,
-];
-
-// Functions for random equations
-const randomIntegral = () => {
-  const variables = ['x', 'y', 'z'];
-  const variable = variables[Math.floor(Math.random() * variables.length)];
-  return `\\int_{0}^{1} ${variable}^2 \\, d${variable}`;
-};
-
-const randomPDE = () => {
-  const operators = ['\\nabla^2', '\\frac{\\partial^2}{\\partial x^2}', '\\frac{\\partial}{\\partial t}'];
-  const operator = operators[Math.floor(Math.random() * operators.length)];
-  return `${operator} u(x, t) = \\alpha u(x, t)`;
-};
-
 // Generate equation based on selected difficulty
 const generateRandomEquation = (difficulty: string) => {
-  let equationContent = '';
-
-  if (difficulty === 'normal') {
-    const choice = Math.random();
-    equationContent = choice < 0.5 ? randomIntegral() : randomPDE();
-  } else {
-    equationContent = predefinedEquations[Math.floor(Math.random() * predefinedEquations.length)];
-  }
-
-  equation.value = `$$${equationContent}$$`;
-  correctAnswer.value = equationContent;
-  currentDifficulty.value = difficulty; // Update current difficulty
-
-  nextTick(() => {
-    if (window.MathJax) {
-      window.MathJax.typeset();
-    }
-  });
+  const predefinedEquations = [
+    `f(\\mathbf{x}^{(k+1)}) \\le f(\\mathbf{x}^{(k)}) + \\beta \\alpha \\nabla_{d^{(k)}}f(\\mathbf{x}^{(k)})`,
+    `\\beta^{(k)}=\\frac{\\mathbf{g}^{(k)\\top}(\\mathbf{g}^{(k)}-\\mathbf{g}^{(k-1)})}{\\mathbf{g}^{(k-1)\\top}\\mathbf{g}^{(k-1)}}`,
+    `\\mathbf{v}^{(k+1)}=\\beta\\mathbf{v}^{(k)}-\\alpha\\nabla f(\\mathbf{x}^{(k)}+\\beta \\mathbf{v}^{(k)})`,
+  ];
+  equation.value = difficulty === 'normal' ? `$$\\int_{0}^{1} x^2 \\, dx$$` : `$$${predefinedEquations[Math.floor(Math.random() * predefinedEquations.length)]}$$`;
+  correctAnswer.value = equation.value;
 };
 
-// Start game function
+// Start the game
 const startGame = () => {
   isPlaying.value = true;
   isCompleted.value = false;
@@ -162,8 +127,7 @@ const startGame = () => {
   userAnswer.value = '';
   userPreview.value = '';
   timeElapsed.value = 0;
-
-  generateRandomEquation(currentDifficulty.value); // Use initial difficulty
+  generateRandomEquation(currentDifficulty.value);
   startTimer();
 };
 
@@ -175,61 +139,55 @@ const startTimer = () => {
 };
 
 const stopTimer = () => {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-  }
+  if (timerInterval) clearInterval(timerInterval);
 };
 
-// Re-roll function with specific difficulty
-const reRollEquation = (difficulty: string) => {
-  stopTimer();
-  timeElapsed.value = 0;
-  feedback.value = '';
-  userAnswer.value = '';
-  userPreview.value = '';
-  isCompleted.value = false;
-
-  generateRandomEquation(difficulty);
-  startTimer();
-};
-
-// Preview update function
+// Preview update and score submission
 const updatePreview = async () => {
   userPreview.value = `$$${userAnswer.value}$$`;
   await nextTick();
-  if (window.MathJax) {
-    window.MathJax.typeset();
-  }
+  if (window.MathJax) window.MathJax.typeset();
 
-  const normalizedUserInput = normalizeEquation(userAnswer.value);
-  const normalizedCorrectAnswer = normalizeEquation(correctAnswer.value);
-
-  if (normalizedUserInput === normalizedCorrectAnswer) {
+  if (normalizeEquation(userAnswer.value) === normalizeEquation(correctAnswer.value)) {
     feedback.value = 'Correct!';
     stopTimer();
     isCompleted.value = true;
-
-    const score = gameStore.getDifficultyWeight(currentDifficulty.value) / timeElapsed.value;
-    if (gameStore.user) {
-      gameStore.addLeaderboardAttempt(
-        gameStore.user.name,
-        gameStore.user.nationality,
-        score,
-        currentDifficulty.value,
-        equation.value,
-        timeElapsed.value
-      );
-    }
-    gameStore.addAttempt(equation.value, timeElapsed.value, currentDifficulty.value);
+    
+    const score = (currentDifficulty.value === 'hard' ? 3 : 1) / timeElapsed.value;
+    await submitScore(equation.value, timeElapsed.value, score, currentDifficulty.value);
   } else {
     feedback.value = 'Keep trying!';
   }
 };
 
-onMounted(() => {
-  if (window.MathJax) {
-    window.MathJax.typeset();
+// API call to submit score
+const submitScore = async (equation: string, time: number, score: number, difficulty: string) => {
+  const payload = {
+    name: user.value.name,
+    nationality: user.value.nationality,
+    score,
+    difficulty,
+    equation,
+    time,
+  };
+
+  try {
+    await axios.post('/leaderboard', payload);
+  } catch (error) {
+    console.error('Failed to submit score:', error);
   }
+};
+
+// Reroll Equation
+const reRollEquation = (difficulty: string) => {
+  stopTimer();
+  isCompleted.value = false;
+  generateRandomEquation(difficulty);
+  startTimer();
+};
+
+onMounted(() => {
+  if (window.MathJax) window.MathJax.typeset();
 });
 </script>
 
